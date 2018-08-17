@@ -53,9 +53,9 @@ CNV was measured using an Affymetrix SNP6.0 array and CNVs were called with the 
 ASCAT takes aneuploidy (aberrations from the diploid state of a healthy cell) and admixture with non-tumor cells into account. First, segments with baseline copy numbers are determined (fitting constants), and an integer is output as the segment mean. Subsequently, copy numbers per SNP (or for a set of subsequent SNPs) are estimated, and mutation types are called based on this.
 
 More details: https://www.crick.ac.uk/peter-van-loo/software/ASCAT
-Loo et al. 2010, Loo et al. 2012.
+[@VanLooEtAl10, @VanLooEtAl12.
 
-The following mutation types are called (details from the supplementary information of Loo et al. 2010).
+The following mutation types are called (details from the supplementary information of [@VanLooEtAl10]).
 
 - copy neutral 
 - copy neutral LOH (this means LOH compared to the biallelic reference, i. e. the healthy control tissue)
@@ -81,7 +81,7 @@ A repair gene is considered deficient, if at least
 - 1 LOF mutation and 1 copy number loss
 - 2 copy number losses or one complete loss
 
-have occurred within the gene. A sample is considered NER deficient, if at least one NER gene is deficient. 66 NER related genes described in Pearl et al are used. 
+have occurred within the gene. A sample is considered NER deficient, if at least one NER gene is deficient. 66 NER related genes described in [@PearlEtAl15] are used. 
 
 A repair gene is considered proficient, if no deletion and no small mutations, except for the ones with no effect, have occurred. A sample is considered NER proficient, if all its NER genes are proficient.
 
@@ -92,7 +92,7 @@ A repair gene is considered proficient, if no deletion and no small mutations, e
 
 SNV counts were prepared by Qianyun Guo for [@JuulEtAl18], as described in [@BertlEtAl18]. In addition to the 96 strand-symmetric mutation types, they also contain annotations of genomic segment types ("3utr" "5utr" "cds"  "prom" "ss" and NA=intergenic), replication timing (5 bins, measured on HeLa cell lines, Chen et al) and expression level (5 bins for genic regions, TCGA breast cancer data). 
 
-Then, I fitted the 30 COSMIC signatures with fit_to_signatures from the R-package MutationalPatterns [@BlokzijlEtAl18].
+Then, I fitted the 30 COSMIC signatures with the function fit_to_signatures from the R-package MutationalPatterns [@BlokzijlEtAl18].
 
 
 
@@ -294,7 +294,7 @@ boxplot(BRCA344_total_mutation_counts$total_count ~ category, col=c("orange", "d
 
 ### Signature profiles
 
-```{r, echo=F}
+```{r, echo=F, results='hide'}
 
 print(plot_contribution(contribution = sig_matrix[, colnames(sig_matrix) %in% samples_def], signatures = COSMIC30_subset, mode="absolute") + ggtitle("NER deficient samples"))
 
@@ -303,7 +303,7 @@ print(plot_contribution(contribution = sig_matrix[, colnames(sig_matrix) %in% sa
 ```
 
 
-```{r, echo=F}
+```{r, echo=F, results='hide'}
 
 d_vec = numeric(18)
 p_vec = numeric(18)
@@ -349,7 +349,7 @@ Using the False Discovery Rate (Benjamini Hochberg type), gives a false discover
 
 ### Signature 8
 
-```{r, echo=F}
+```{r, echo=F, results='hide'}
 pro_def_comparison(donors_def = samples_def, donors_pro = samples_pro, signatures = BRCA344_cosmic30_signatures$sig.count, which.sig="Signature.8", main="")
 ```
 
@@ -377,7 +377,7 @@ Among the 3 genes with a double hit in PD8980, only GTF2H1 is part of the NER pa
 
 Test without outlier: 
 
-```{r, echo=F}
+```{r, echo=F, results='hide'}
 pro_def_comparison(donors_def = samples_def[samples_def != outlier], donors_pro = samples_pro, signatures = BRCA344_cosmic30_signatures$sig.count, which.sig="Signature.8", main="")
 ```
 

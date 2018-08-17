@@ -41,9 +41,9 @@ CNV was measured using an Affymetrix SNP6.0 array and CNVs were called with the 
 
 ASCAT takes aneuploidy (aberrations from the diploid state of a healthy cell) and admixture with non-tumor cells into account. First, segments with baseline copy numbers are determined (fitting constants), and an integer is output as the segment mean. Subsequently, copy numbers per SNP (or for a set of subsequent SNPs) are estimated, and mutation types are called based on this.
 
-More details: <https://www.crick.ac.uk/peter-van-loo/software/ASCAT> Loo et al. 2010, Loo et al. 2012.
+More details: <https://www.crick.ac.uk/peter-van-loo/software/ASCAT> \[Van Loo et al. (2010), Van Loo et al. (2012).
 
-The following mutation types are called (details from the supplementary information of Loo et al. 2010).
+The following mutation types are called (details from the supplementary information of (Van Loo et al. 2010)).
 
 -   copy neutral
 -   copy neutral LOH (this means LOH compared to the biallelic reference, i. e. the healthy control tissue)
@@ -68,7 +68,7 @@ A repair gene is considered deficient, if at least
 -   1 LOF mutation and 1 copy number loss
 -   2 copy number losses or one complete loss
 
-have occurred within the gene. A sample is considered NER deficient, if at least one NER gene is deficient. 66 NER related genes described in Pearl et al are used.
+have occurred within the gene. A sample is considered NER deficient, if at least one NER gene is deficient. 66 NER related genes described in (Pearl 2015) are used.
 
 A repair gene is considered proficient, if no deletion and no small mutations, except for the ones with no effect, have occurred. A sample is considered NER proficient, if all its NER genes are proficient.
 
@@ -77,7 +77,7 @@ Mutation counts
 
 SNV counts were prepared by Qianyun Guo for (Juul et al. 2018), as described in (Bertl et al. 2018). In addition to the 96 strand-symmetric mutation types, they also contain annotations of genomic segment types ("3utr" "5utr" "cds" "prom" "ss" and NA=intergenic), replication timing (5 bins, measured on HeLa cell lines, Chen et al) and expression level (5 bins for genic regions, TCGA breast cancer data).
 
-Then, I fitted the 30 COSMIC signatures with fit\_to\_signatures.
+Then, I fitted the 30 COSMIC signatures with the function fit\_to\_signatures from the R-package MutationalPatterns (Blokzijl et al. 2018).
 
 Data preparation
 ================
@@ -384,6 +384,14 @@ References
 
 Bertl, Johanna, Qianyun Guo, Malene Juul, Søren Besenbacher, Morten Muhlig Nielsen, Henrik Hornshøj, Jakob Skou Pedersen, and Asger Hobolth. 2018. “A Site Specific Model and Analysis of the Neutral Somatic Mutation Rate in Whole-Genome Cancer Data.” *BMC Bioinformatics* 19 (147).
 
+Blokzijl, Francis, Roel Janssen, Ruben van Boxtel, and Edwin Cuppen. 2018. “MutationalPatterns: Comprehensive Genome-Wide Analysis of Mutational Processes.” *Genome Medicine* 10 (1): 33. doi:[10.1186/s13073-018-0539-0](https://doi.org/10.1186/s13073-018-0539-0).
+
 Juul, Malene, Tobias Madsen, Qianyun Guo, Johanna Bertl, Asger Hobolth, Manolis Kellis, and Jakob Skou Pedersen. 2018. “NcdDetect2: Improved Models of the Site-Specific Mutation Rate in Cancer and Driver Detection with Robust Significance Evaluation.” *Bioinformatics*, bty511. doi:[10.1093/bioinformatics/bty511](https://doi.org/10.1093/bioinformatics/bty511).
 
 Nik-Zainal, Serena, Helen Davies, Johan Staaf, Manasa Ramakrishna, Dominik Glodzik, Xueqing Zou, Inigo Martincorena, et al. 2016. “Landscape of Somatic Mutations in 560 Breast Cancer Whole-Genome Sequences.” *Nature* 534 (7605). Nature Publishing Group: 47–54.
+
+Pearl, Laurence H. Pearl AND Amanda C. Schierz AND Simon E. Ward AND Bissan Al-Lazikani AND Frances M. G. 2015. “Therapeutic Opportunities Within the DNA Damage Response.” *Nature Reviews Cancer* 15: 166–80. doi:[10.1038/nrc3891](https://doi.org/10.1038/nrc3891).
+
+Van Loo, Peter, Gro Nilsen, Silje H. Nordgard, Hans Kristian Moen Vollan, Anne-Lise Børresen-Dale, Vessela N. Kristensen, and Ole Christian Lingjærde. 2012. “Analyzing Cancer Samples with Snp Arrays.” In *Next Generation Microarray Bioinformatics: Methods and Protocols*, edited by Junbai Wang, Aik Choon Tan, and Tianhai Tian, 57–72. Totowa, NJ: Humana Press. doi:[10.1007/978-1-61779-400-1\_4](https://doi.org/10.1007/978-1-61779-400-1_4).
+
+Van Loo, Peter, Silje H. Nordgard, Ole Christian Lingjærde, Hege G. Russnes, Inga H. Rye, Wei Sun, Victor J. Weigman, et al. 2010. “Allele-Specific Copy Number Analysis of Tumors.” *Proceedings of the National Academy of Sciences* 107 (39). National Academy of Sciences: 16910–5. doi:[10.1073/pnas.1009843107](https://doi.org/10.1073/pnas.1009843107).
