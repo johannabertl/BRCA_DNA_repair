@@ -1,0 +1,393 @@
+---
+title: "The mutational footprint of NER deficiency"
+subtitle: "in 344 WGS breast cancer samples"
+author: "Johanna Bertl"
+date: "`r Sys.Date()`"
+output:
+  md_document:
+    variant: markdown_github
+bibliography: ./bibliography.bib
+---
+
+
+# Data
+
+The original dataset consists of 569 WGS breast cancer samples (tumor & normal samples) (four of them from men) from [@Nik-ZainalEtAl16] available via ICGC. In [@Nik-ZainalEtAl16], a subset of 560 samples is used, with extensive additional information given in supplementary tables. Copy number variation data from a SNP array is available for 344 of them. This is the subset used here. 
+
+
+## Small somatic variants (SNVs and small INDELs)
+
+For all samples, the consequences of the mutations are annotated in the ICGC data. 
+
+The following variant types are found in repair genes, and the ones in bold are considered loss-of-function mutations. The ones in italic are considered as very likely having no effect. The remaining ones have unclear effect.
+
+- 3_prime_UTR_variant
+- 5_prime_UTR_premature_start_codon_gain_variant
+- 5_prime_UTR_variant
+- **disruptive_inframe_deletion**
+- *downstream_gene_variant*
+- exon_variant
+- **frameshift_variant**
+- inframe_deletion
+- *intron_variant*
+- missense_variant
+- splice_acceptor_variant
+- splice_donor_variant
+- splice_region_variant
+- **stop_gained**
+- stop_retained_variant
+- synonymous_variant
+- *upstream_gene_variant*
+
+(Other annotated variants that are not found in the repair genes are: disruptive_inframe_insertion, inframe_insertion, initiator_codon_variant, intergenic_region, intragenic_variant, start_lost, stop_lost. )
+
+(I don't know what an exon_variant is, since missense, nonsense and synonymous variants are annotated separately. )
+
+
+## Copy number variation
+
+Copy number variation is available for 344 samples and all Pearl repair genes except GTF2H5 (NER), RDM1 (HR) and RECQL4 (HR). It is not clear why. One possible explanation is that these genes lie be in regions with too few SNPs to call CNVs. 
+
+CNV was measured using an Affymetrix SNP6.0 array and CNVs were called with the ASCAT algorithm. The results are reported incompletely in the ICGC data (there are some empty columns, e. g. copy numbers, quality scores). The raw data is  available from the European Genome-Phenome arxive with accession number EGAD00010000915. 
+
+ASCAT takes aneuploidy (aberrations from the diploid state of a healthy cell) and admixture with non-tumor cells into account. First, segments with baseline copy numbers are determined (fitting constants), and an integer is output as the segment mean. Subsequently, copy numbers per SNP (or for a set of subsequent SNPs) are estimated, and mutation types are called based on this.
+
+More details: https://www.crick.ac.uk/peter-van-loo/software/ASCAT
+Loo et al. 2010, Loo et al. 2012.
+
+The following mutation types are called (details from the supplementary information of Loo et al. 2010).
+
+- copy neutral 
+- copy neutral LOH (this means LOH compared to the biallelic reference, i. e. the healthy control tissue)
+- gain (SNPs with total copy number >=3)
+- loss (SNPs with total copy number 0 or 1)
+
+The results are not summarized per SNP, but rather per segment or set of SNPs. There can be multiple copy number events per gene per sample. In practice, it's in most cases maximum 1 event, sometimes 2 and in rare cases 3 or 4 events per gene. I am only considering the most severe event per gene. 
+
+Recoding: 
+
+- copy neutral, copy neutral LOH, gain => 2 (neutral or gain)
+- loss with segment mean = 0 => 0 (loss of both alleles)
+- loss with segment mean = 1 => 1 (loss of one allele)
+- loss with segment mean >=2 => 2 (unclear, but might not be a loss after all)
+
+
+
+## NER deficiency vs proficiency 
+
+A repair gene is considered deficient, if at least 
+
+- 2 LOF mutations
+- 1 LOF mutation and 1 copy number loss
+- 2 copy number losses or one complete loss
+
+have occurred within the gene. A sample is considered NER deficient, if at least one NER gene is deficient. 66 NER related genes described in Pearl et al are used. 
+
+A repair gene is considered proficient, if no deletion and no small mutations, except for the ones with no effect, have occurred. A sample is considered NER proficient, if all its NER genes are proficient.
+
+
+
+## Mutation counts
+
+
+SNV counts were prepared by Qianyun Guo for [@JuulEtAl18], as described in [@BertlEtAl18]. In addition to the 96 strand-symmetric mutation types, they also contain annotations of genomic segment types ("3utr" "5utr" "cds"  "prom" "ss" and NA=intergenic), replication timing (5 bins, measured on HeLa cell lines, Chen et al) and expression level (5 bins for genic regions, TCGA breast cancer data). 
+
+Then, I fitted the 30 COSMIC signatures with fit_to_signatures from the R-package MutationalPatterns [@BlokzijlEtAl18].
+
+
+
+# Data preparation
+
+The data was retrieved from the ICGC (somatic copy number variation, simple somatic mutations and sample information) and was further prepared R scripts are used to prepare the data. The original files are copy_number_somatic_mutation.tsv, donor.tsv, sample.tsv and simple_somatic_mutation.open.tsv. 
+
+
+**Basics:**
+
+- prepare_samples.R: list with mapping of sample and donor IDs and which information is available (CNV, SNV). Output: BRCA_samples.Rdata
+
+
+**Preparation of the raw mutation data:** 
+
+- subset_cnvs.R: subsets the original data to the genomic regions of the repair genes. Output: cnv_subset.Rdata
+- prepare_CNV_in_repair_genes.R: extracts copy number variation data per sample per repair gene from cnv_subset.Rdata. Output: BRCA_cnv_in_repair_genes.Rdata
+- subset_simple_somatic_mutations.R: subsets somatic mutation files to the genomic regions of the repair genes. Output: snv_subset.Rdata
+- prepare_mutations_in_repair_genes.R: extracts different mutation types (consequences) per repair gene and sample from snv_subset.Rdata. Output: BRCA_mutations_in_repair_genes.Rdata
+
+
+**Definition of repair deficiencies:**
+
+- prepare_LOF_mutations_in_repair_genes.R: extracts the number of loss-of-function mutations per repair gene per sample. Output: BRCA_lof_in_repair_genes.Rdata
+- prepare_double_hits_in_repair_genes_pathways.R: defines double hits (biallelic inactivation) per sample per repair gene and summarizes over repair pathways. Output: BRCA_double_hits_genes_pathways.Rdata
+- prepare_no_hit_in_repair_genes_pathways.R: defines functional repair genes per sample per repair genes and summarizes over repair pathways. Output: BRCA_no_hits_in_repair_genes_pathways.Rdata
+
+
+**Mutational signatures:**
+
+- prepare_mutation_counts.R: Prepares the counts of the 96 mutation types per sample. Output: BRCA_mutation_counts.Rdata
+- prepare_COSMIC30_signatures: fits the 30 COSMIC signatures to the mutation counts
+
+
+**Samples with CNV and SNV data:**
+
+- prepare_subset344.R. Subsets to the 344 samples where copy number data is available: BRCA344_COSMIC30_mutational_signatures.Rdata, BRCA344_double_hits_genes_pathways.Rdata, BRCA344_mutation_counts.Rdata, BRCA344_no_hits_in_repair_genes_pathways.Rdata -- These are the final datasets analysed here. 
+
+
+**Summary files:**
+
+The main analyses presented in the paper can be conducted based on the files mutation_counts.txt and NER_functionality_category.txt. They are produced here. The test results are available in results.txt.
+
+
+# Results 
+
+```{r, load packages and data, include=FALSE}
+library("MutationalPatterns")
+library("MutationRepair")
+library("colorspace") # for the color scale in the correlation heatmap
+library("ggplot2") # for using ggtitle on a plot created by MutationRepair
+
+load("BRCA344_COSMIC30_mutational_signatures.Rdata")
+load("BRCA344_mutation_counts.Rdata")
+load("BRCA344_double_hits_genes_pathways.Rdata")
+load("BRCA344_no_hits_in_repair_genes_pathways.Rdata")
+
+load("../PCAWG_analysis/Pearl_overlaps_cosmic.Rdata")
+
+sig_vec = c(1,2,3,5,6,8,9, 12, 13, 16, 17, 18, 19, 20, 21, 26, 29, 30)
+
+samples_def = as.character(BRCA344_double_hits_in_pathways$Donor_ID[BRCA344_double_hits_in_pathways$NER==1])
+samples_pro = as.character(BRCA344_no_hits_in_pathways$Donor_ID[BRCA344_no_hits_in_pathways$NER==1])
+samples_unclear = as.character(BRCA344_no_hits_in_pathways$Donor_ID[BRCA344_no_hits_in_pathways$NER!=1 & BRCA344_double_hits_in_pathways$NER!=1])
+
+category = ifelse(BRCA344_double_hits_in_pathways$NER==1, "def", "unknown")
+category = ifelse(BRCA344_no_hits_in_pathways$NER==1, "pro", category )
+
+write.table(cbind(sample_id = as.character(BRCA344_double_hits_in_pathways$Donor_ID), NER_function = category), file="NER_functionality_category.txt", quote=F, row.names=F, col.names=T)
+```
+
+## Samples with NER proficiency and deficiency
+
+### Number of double hits per NER gene
+
+```{r, echo=F}
+
+colSums(BRCA344_double_hits_in_genes[, Pearl_simple_wide$Gene.ID[Pearl_simple_wide$NER==1]])
+
+```
+
+Note that there are no double hits in XPC and ERCC1. 
+
+POLE, which can cause a mutator phenotype if knocked out (mainly seen in colorectal cancer), does not have any double hits. This matches with signature 10 not being used here.
+
+For GTF2H5, the copy number data is missing.
+
+
+### Number of NER proficient and deficient samples and samples with unclear NER function
+
+```{r, echo=F}
+
+table(category)
+
+```
+
+
+## Mutational signatures
+
+With a cut-off of 0.1, 18 mutational signatures were used to fit the data. This includes all 12 signatures used in Nik-Zainal et al (1, 2, 3, 5, 6, 8, 13, 17, 18, 20, 26, 30) and additional signatures 9, 12, 16, 19, 21 and 29.
+
+### Goodness-of-fit
+
+```{r, signatures fit, echo=F}
+
+plot(BRCA344_cosmic30_signatures$cos_sim_res, xlab="sample index", ylab = "cosine sim", main = "Cosine similarity btw observed and reconstructed mut vector")
+
+```
+
+All samples have a high cosine similarity, so no samples are excluded from the analysis.
+
+```{r, signatures structure, echo=F}
+
+plot(BRCA344_total_mutation_counts$total_count, BRCA344_cosmic30_signatures$cos_sim_res, log="x", xlab = "Total number of mutations", ylab="cos sim", main = "Total number of mut vs cos sim")
+
+plot(rowSums(BRCA344_cosmic30_signatures$sig.prop[, -c(1,2)]>0), BRCA344_cosmic30_signatures$cos_sim_res, xlab="Number of positive signature contributions", ylab = "cos sim", main = "Number of sig vs cos sim")
+
+```
+
+### Signature contributions
+
+```{r, signature contributions, fig.width=10, fig.height=20, echo=FALSE}
+
+sig_matrix = t(as.matrix(BRCA344_cosmic30_signatures$sig.count[, -c(1,2)]))
+colnames(sig_matrix) = BRCA344_cosmic30_signatures$sig.count$Donor_ID
+
+data("COSMIC30")
+COSMIC30_subset = COSMIC30[colnames(COSMIC30) %in% rownames(sig_matrix), ] 
+
+plot_contribution_heatmap(contribution = sig_matrix, cluster_samples=F)
+
+```
+
+
+### Correlation between signature contribution (absolute) and total number of mutations
+
+Only the proficient and deficient samples are considered here. The Spearman correlation is used.
+
+```{r, echo=F}
+
+corvec = numeric(18)
+
+for(i in 1:18){
+  corvec[i] = cor(BRCA344_total_mutation_counts$total_count[BRCA344_total_mutation_counts$Donor_ID %in% c(samples_pro, samples_def)], BRCA344_cosmic30_signatures$sig.count[BRCA344_cosmic30_signatures$sig.count$Donor_ID %in% c(samples_pro, samples_def), i+2], method="spearman")
+}
+
+names(corvec) = sig_vec
+
+plot(sig_vec, corvec, xlab= "Signature", ylab = "Spearman cor", main = "Cor btw signature contribution and total number of mutations")
+abline(h=0, lty=2)
+
+```
+
+(The correlation can't be computed for signature 20, because it is zero. )
+
+### Correlation between signature contributions (absolute)
+
+Only the proficient and deficient samples are considered here. The Spearman correlation is used.
+
+(red, positive; blue, negative)
+
+```{r, echo=F}
+
+cormat = cor(BRCA344_cosmic30_signatures$sig.count[, -c(1,2)], method="spearman")
+
+heatmap(cormat,  Rowv = NA, Colv = NA, revC=T, scale="none", col = diverge_hsv(200)[70:200], main = "Spearman correlation btw signature contributions")
+
+print("")
+
+plot(sig_vec, cormat[, "Signature.8"], xlab = "Signature", ylab = "Spearman cor with sig 8", main = "Correlation btw ig 8 and other sig contrib")
+abline(h=0, lty=2)
+
+```
+
+The highest correlations are between Signature 2 and 13 (both APOBEC related, often found together) and Signature 3 and 13. 
+
+
+
+## Mutational footprint of NER deficiency
+
+### Mutation profiles
+
+```{r, mutation profiles, echo=F}
+
+mut_counts_def = colSums(BRCA344_mutation_counts[BRCA344_mutation_counts$Donor_ID %in% samples_def, -c(1,2)])
+mut_counts_pro = colSums(BRCA344_mutation_counts[BRCA344_mutation_counts$Donor_ID %in% samples_pro, -c(1,2)])
+
+plot_96_profile(cbind(def = mut_counts_def, pro = mut_counts_pro))
+
+```
+
+### Total number of mutations
+
+```{r, echo=F}
+
+boxplot(BRCA344_total_mutation_counts$total_count ~ category, col=c("orange", "darkgreen", "white"), main = "Total number of mutations (SNVs)", xlab = "NER function", ylab = "Number of SNVs")
+
+```
+
+### Signature profiles
+
+```{r, echo=F}
+
+print(plot_contribution(contribution = sig_matrix[, colnames(sig_matrix) %in% samples_def], signatures = COSMIC30_subset, mode="absolute") + ggtitle("NER deficient samples"))
+
+print(plot_contribution(contribution = sig_matrix[, colnames(sig_matrix) %in% samples_pro], signatures = COSMIC30_subset, mode="absolute") + ggtitle("NER proficient samples"))
+
+```
+
+
+```{r, echo=F}
+
+d_vec = numeric(18)
+p_vec = numeric(18)
+med_vec = numeric(18)
+
+# sig_vec = c(1,2,3,5,6,8,9, 12, 13, 16, 17, 18, 19, 20, 21, 26, 29, 30)
+
+d_vec[14] = NA
+p_vec[14] = NA
+med_vec[14] = NA
+
+for(i in c(1:13,15:18)){
+  
+
+  
+  testres = pro_def_comparison(donors_def = samples_def, donors_pro = samples_pro, signatures = BRCA344_cosmic30_signatures$sig.count, which.sig=paste0("Signature.", sig_vec[i]), main="", fig=F, invisible=T)
+  
+  d_vec[i] = testres$test_diff
+  p_vec[i] = testres$test_p
+  med_vec[i] = median(BRCA344_cosmic30_signatures$sig.count[BRCA344_cosmic30_signatures$sig.count$Donor_ID %in% samples_def, i+2]) - median(BRCA344_cosmic30_signatures$sig.count[BRCA344_cosmic30_signatures$sig.count$Donor_ID %in% samples_pro, i+2])
+}
+
+
+plot(x = sig_vec, y = p_vec, main = "p-value of Wilcoxon Test", xlab = "Signature", ylab = "p-value")
+
+plot(x = sig_vec, y = p.adjust(p_vec, method="BH"), main = "FDR (Benjamini-Hochberg) of Wilcoxon test", xlab = "Signature", ylab = "false discovery rate")
+
+plot(x = sig_vec, y = d_vec, pch = ifelse(p_vec < 0.05/17, 18, 1), xlab = "Signature", ylab = "Median difference", main = "Median difference (effect size)")
+
+plot(x = sig_vec, y = med_vec, pch = ifelse(p_vec < 0.05/17, 18, 1), xlab = "Signature", ylab = "Difference of medians", main = "Difference of the medians")
+
+```
+
+Note that signature 20 couldn't be tested, because none of the NER deficient and proficient samples have any signature 20 mutations.
+
+After Bonferroni correction for 17 tests (signature 20 was not tested), none of the signatures shows a significant differences between the two groups, NER proficient and deficient. The only low p-values (uncorrected) are for signature 8 (`r p_vec[sig_vec==8]`), sig 13 (`r p_vec[sig_vec==13]`) and 19 (`r p_vec[sig_vec==19]`).
+
+Signature 8 has the second lowest p-value (nearly the same as signature 13) and the highest effect size. 
+
+Using the False Discovery Rate (Benjamini Hochberg type), gives a false discovery probability of 0.19 for signatures 8 and 13, and a value of 0.24 for signature 19. 
+
+
+
+### Signature 8
+
+```{r, echo=F}
+pro_def_comparison(donors_def = samples_def, donors_pro = samples_pro, signatures = BRCA344_cosmic30_signatures$sig.count, which.sig="Signature.8", main="")
+```
+
+Which sample is the outlier?
+
+```{r, echo=F}
+outlier = samples_def[which.max(BRCA344_cosmic30_signatures$sig.count$Signature.8[BRCA344_cosmic30_signatures$sig.count$Donor_ID %in% samples_def])]
+outlier
+
+BRCA344_cosmic30_signatures$sig.count[BRCA344_cosmic30_signatures$sig.count$Donor_ID=="PD8980", -c(1,2)]
+
+Pearl_simple_wide[(BRCA344_double_hits_in_genes[BRCA344_double_hits_in_genes$Donor_ID==outlier,-c(1,2)]>0),]
+
+plot(density(BRCA344_total_mutation_counts$total_count[BRCA344_total_mutation_counts$Donor_ID %in% samples_def]), col="orange", main = "total number of mutations", sub="red: outlier PD8980", xlab = "total number of mutations in NER def samples")
+points(x=BRCA344_total_mutation_counts$total_count[BRCA344_total_mutation_counts$Donor_ID %in% samples_def], y = rep(0, length(samples_def)), col="orange")
+points(x=BRCA344_total_mutation_counts$total_count[BRCA344_total_mutation_counts$Donor_ID==outlier], y = 0, col="darkred")
+
+```
+
+PD8980 has a high number of mutations in total, but it is not a striking outlier. 
+
+Among the 3 genes with a double hit in PD8980, only GTF2H1 is part of the NER pathway. There is a high signature 3 contribution in this sample, but none of the double hits is in the HR pathway. 
+
+(The 3 NA lines are because of NA values for double hits for 3 genes with missing copy number variation data.)
+
+Test without outlier: 
+
+```{r, echo=F}
+pro_def_comparison(donors_def = samples_def[samples_def != outlier], donors_pro = samples_pro, signatures = BRCA344_cosmic30_signatures$sig.count, which.sig="Signature.8", main="")
+```
+
+
+```{r, echo=F}
+# print table
+
+results = data.frame(signature = sig_vec, cor_with_total_mut = corvec, p_value = p_vec, FDR = p.adjust(p_vec, method = "BH"), median_difference = d_vec, difference_of_medians = med_vec)
+write.table(results, file="results.txt", row.names = F)
+
+```
+
+# References
